@@ -1083,11 +1083,11 @@ def main(subject_name, output_dir="../data/stimuli/", create_stim=True, create_i
                                   ['w_r', 'w_a', 'phi', 'res', 'index', 'class_idx'], 'logpolar')
         mat_save_dict['stimuli'] = stim
         # constant stimuli and csv
-        constant_stim = _create_stim(res, constant_freqs, phi, num_blank_trials, n_exemplars,
-                                     output_dir, "constant_" + stimuli_name,
-                                     "constant_" + stimuli_description_csv_name,
-                                     ['w_x', 'w_y', 'phi', 'res', 'index', 'class_idx'],
-                                     'constant', mask)
+        constant_stim, _ = _create_stim(res, constant_freqs, phi, num_blank_trials, n_exemplars,
+                                        output_dir, "constant_" + stimuli_name,
+                                        "constant_" + stimuli_description_csv_name,
+                                        ['w_x', 'w_y', 'phi', 'res', 'index', 'class_idx'],
+                                        'constant', mask)
         mat_save_dict['constant_stimuli'] = constant_stim
     sio.savemat(os.path.join(output_dir, 'spatialFreqStim.mat'), mat_save_dict)
     return stim, constant_stim
