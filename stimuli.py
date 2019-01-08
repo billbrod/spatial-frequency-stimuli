@@ -1067,7 +1067,8 @@ def main(subject_name, output_dir="../data/stimuli/", create_stim=True, create_i
                 ex_idx.extend(ex_idx_tmp)
             np.save(filename % i, class_idx + ex_idx)
             mat_save_key = "{subj}_run{num:02d}_idx".format(subj=subject_name, num=i)
-            mat_save_dict[mat_save_key] = class_idx + ex_idx
+            # add the extra 1 because this will be used in matlab
+            mat_save_dict[mat_save_key] = class_idx + ex_idx + 1
     if create_stim:
         if os.path.isfile(os.path.join(output_dir, "constant_" + stimuli_name)):
             raise Exception("unshuffled data already exists!")
