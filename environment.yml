@@ -1,0 +1,23 @@
+name: sf-stim
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python==3.6
+  - anaconda
+  - pip
+  - jupyter
+  - jupyterlab
+  - ipykernel
+  - numpy
+  - matplotlib
+  - scipy
+  - seaborn
+  - statsmodels
+  - pandas
+  - pyyaml
+  - nipype>=1.1.1
+  - pillow
+  - scikit-learn
+  - pip:
+      - pybids >= 0.4.2
