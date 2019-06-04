@@ -1184,5 +1184,31 @@ if __name__ == '__main__':
     parser.add_argument("--mat_file_name", "-m",
                         help="name for the .mat file that contains the equivalent information",
                         default="spatialFreqStim.mat")
+    parser.add_argument("--n_exemplars", default=8, type=int,
+                        help="Number of exemplars (i.e., different phases) in each class")
+    parser.add_argument("--n_freq_steps", default=6, type=int,
+                        help=("Number of steps to take in frequency space, from 2^2.5 to 2^7"
+                              " (inclusive)"))
+    parser.add_argument("--n_logpolar_orientations", default=4, type=int,
+                        help=("Number of orientations for the logpolar stimuli. These are the "
+                              "'canonical orientations', which have all n_freq_steps samples in"
+                              " frequency space "))
+    parser.add_argument("--n_logpolar_intermed_samples", default=1, type=int,
+                        help=("Number of intermediate orientations for the logpolar stimuli.  "
+                              "These are the intermediate spirals between the 'canonical "
+                              "orientations', and only occur at one frequency, approximately  "
+                              "half-way (in log-spacing)"))
+    parser.add_argument("--n_constant_orientations", default=8, type=int,
+                        help=("Number of orientations for the constant stimuli. These are the "
+                              "'canonical orientations', which have all n_freq_steps samples in"
+                              " frequency space "))
+    parser.add_argument("--n_constant_intermed_samples", default=0, type=int,
+                        help=("Number of intermediate orientations for the constant stimuli.  "
+                              "These are the intermediate spirals between the 'canonical "
+                              "orientations', and only occur at one frequency, approximately  "
+                              "half-way (in log-spacing)"))
+    parser.add_argument("--constant_freq_target_eccen", default=2.5, type=float,
+                        help=("The approximate eccentricity where we want the spatial frequency of"
+                              " the logpolar and constant stimuli to be equivalent."))
     args = vars(parser.parse_args())
     _ = main(**args)
