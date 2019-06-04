@@ -897,27 +897,30 @@ def gen_log_polar_stim_set(size, freqs_ra=[(0, 0)], phi=[0], ampl=[1], origin=No
     else:
         mask = mask[0]
     mask = _fade_mask(mask, number_of_fade_pixels, number_of_fade_pixels, origin)
-    for (w_r, w_a), p, A in itertools.product(freqs_ra, phi, ampl):
-        if w_r == 0 and w_a == 0:
-            # this is the empty stimulus
-            continue
-        if 0 in [w_r, w_a] or 'spiral' in combo_stimuli_type:
-            tmp_stimuli = log_polar_grating(size, w_r, w_a, p, A, origin)
-            if bytescale:
-                masked_stimuli.append(bytescale_func(tmp_stimuli*mask, cmin=-1, cmax=1))
-                stimuli.append(bytescale_func(tmp_stimuli, cmin=-1, cmax=1))
-            else:
-                masked_stimuli.append(tmp_stimuli*mask)
-                stimuli.append(tmp_stimuli)
-        if 'plaid' in combo_stimuli_type and 0 not in [w_r, w_a]:
-            tmp_stimuli = (log_polar_grating(size, w_r, 0, p, A, origin) +
-                           log_polar_grating(size, 0, w_a, p, A, origin))
-            if bytescale:
-                masked_stimuli.append(bytescale_func(tmp_stimuli*mask, cmin=-1, cmax=1))
-                stimuli.append(bytescale_func(tmp_stimuli, cmin=-1, cmax=1))
-            else:
-                masked_stimuli.append(tmp_stimuli*mask)
-                stimuli.append(tmp_stimuli)
+    for (w_r, w_a), A in itertools.product(freqs_ra, ampl):
+        stimuli.append([])
+        masked_stimuli.append([])
+        for p in phi:
+            if w_r == 0 and w_a == 0:
+                # this is the empty stimulus
+                continue
+            if 0 in [w_r, w_a] or 'spiral' in combo_stimuli_type:
+                tmp_stimuli = log_polar_grating(size, w_r, w_a, p, A, origin)
+                if bytescale:
+                    masked_stimuli[-1].append(bytescale_func(tmp_stimuli*mask, cmin=-1, cmax=1))
+                    stimuli[-1].append(bytescale_func(tmp_stimuli, cmin=-1, cmax=1))
+                else:
+                    masked_stimuli[-1].append(tmp_stimuli*mask)
+                    stimuli[-1].append(tmp_stimuli)
+            if 'plaid' in combo_stimuli_type and 0 not in [w_r, w_a]:
+                tmp_stimuli = (log_polar_grating(size, w_r, 0, p, A, origin) +
+                               log_polar_grating(size, 0, w_a, p, A, origin))
+                if bytescale:
+                    masked_stimuli[-1].append(bytescale_func(tmp_stimuli*mask, cmin=-1, cmax=1))
+                    stimuli[-1].append(bytescale_func(tmp_stimuli, cmin=-1, cmax=1))
+                else:
+                    masked_stimuli[-1].append(tmp_stimuli*mask)
+                    stimuli[-1].append(tmp_stimuli)
     return masked_stimuli, stimuli, mask
 
 
@@ -977,18 +980,21 @@ def gen_constant_stim_set(size, mask, freqs_xy=[(0, 0)], phi=[0], ampl=[1], orig
         ampl = [ampl]
     stimuli = []
     masked_stimuli = []
-    for (w_x, w_y), p, A in itertools.product(freqs_xy, phi, ampl):
-        if w_x == 0 and w_y == 0:
-            # this is the empty stimulus
-            continue
-        else:
-            tmp_stimuli = A * create_sin_cpp(size, w_x, w_y, p, origin=origin)
-            if bytescale:
-                masked_stimuli.append(bytescale_func(tmp_stimuli*mask, cmin=-1, cmax=1))
-                stimuli.append(bytescale_func(tmp_stimuli, cmin=-1, cmax=1))
+    for (w_x, w_y), A in itertools.product(freqs_xy, ampl):
+        stimuli.append([])
+        masked_stimuli.append([])
+        for p in phi:
+            if w_x == 0 and w_y == 0:
+                # this is the empty stimulus
+                continue
             else:
-                masked_stimuli.append(tmp_stimuli*mask)
-                stimuli.append(tmp_stimuli)
+                tmp_stimuli = A * create_sin_cpp(size, w_x, w_y, p, origin=origin)
+                if bytescale:
+                    masked_stimuli[-1].append(bytescale_func(tmp_stimuli*mask, cmin=-1, cmax=1))
+                    stimuli[-1].append(bytescale_func(tmp_stimuli, cmin=-1, cmax=1))
+                else:
+                    masked_stimuli[-1].append(tmp_stimuli*mask)
+                    stimuli[-1].append(tmp_stimuli)
     return masked_stimuli, stimuli
 
 
@@ -1027,7 +1033,7 @@ def _gen_freqs(base_freqs, n_orientations=4, n_intermed_samples=2, round_flag=Tr
     return freqs
 
 
-def _create_stim(res, freqs, phi, n_exemplars, output_dir, stimuli_name,
+def _create_stim(pixel_diameter, freqs, phi, n_exemplars, output_dir, stimuli_name,
                  stimuli_description_csv_name, col_names, stim_type, mask=None):
     """helper function to create the stimuli and and stimuli description csv
 
@@ -1035,15 +1041,17 @@ def _create_stim(res, freqs, phi, n_exemplars, output_dir, stimuli_name,
     to call, gen_log_polar_stim_set or gen_constant_stim_set. if constant, mask must be set
     """
     if stim_type == 'logpolar':
-        masked_stim, stim, mask = gen_log_polar_stim_set(res, freqs, phi)
+        masked_stim, stim, mask = gen_log_polar_stim_set(pixel_diameter, freqs, phi)
     elif stim_type == 'constant':
-        masked_stim, stim = gen_constant_stim_set(res, mask, freqs, phi)
+        masked_stim, stim = gen_constant_stim_set(pixel_diameter, mask, freqs, phi)
+    # in order to get this the right shape
+    stim = np.array(stim).transpose(2, 3, 0, 1)
     np.save(os.path.join(output_dir, stimuli_name), stim)
 
-    # log-polar csv
     df = []
-    for i, ((w_1, w_2), p) in enumerate(itertools.product(freqs, phi)):
-        df.append((w_1, w_2, p, res, i, i / n_exemplars))
+    for i, (w_1, w_2) in enumerate(freqs):
+        for j, p in enumerate(phi):
+            df.append((w_1, w_2, p, pixel_diameter, i, j))
     df = pd.DataFrame(df, columns=col_names)
     df.to_csv(os.path.join(output_dir, stimuli_description_csv_name), index=False)
     return stim, mask
@@ -1081,6 +1089,11 @@ def main(pixel_diameter=714, degree_diameter=8.4, n_exemplars=8, n_freq_steps=6,
     there will be `n_exemplars` (default 8) different phases equally spaced from 0 to 2 pi:
     np.array(range(n_exemplars))/n_exemplars.*2*np.pi
 
+    stimuli will be a numpy array with size [pixel_diameter, pixel_diameter,
+    n_logpolar_orientations*(n_freq_steps+n_logpolar_intermed_samples), n_exemplars]. similarly,
+    constant_stimuli will be an array with size [pixel_diameter, pixel_diameter,
+    n_constant_orientations*(n_freq_steps+n_constant_intermed_samples), n_exemplars].
+
     The actual stimuli will be saved as {stimuli_name} in the output_dir. A description of the
     stimuli properties, in the order found in the stimuli, is saved at
     {stimuli_description_csv_name} in the output folder, as a pandas DataFrame. We will also save
@@ -1116,8 +1129,6 @@ def main(pixel_diameter=714, degree_diameter=8.4, n_exemplars=8, n_freq_steps=6,
     constant_freqs = _gen_freqs(constant_freqs, n_constant_orientations,
                                 n_constant_intermed_samples, False)
     phi = np.array(range(n_exemplars))/n_exemplars*2*np.pi
-    # in case we need to return them
-    stim, constant_stim = None, None
     mat_save_dict = {}
     if os.path.isfile(os.path.join(output_dir, stimuli_name.replace('task-sfp',
                                                                     'task-sfpconstant'))):
@@ -1133,7 +1144,7 @@ def main(pixel_diameter=714, degree_diameter=8.4, n_exemplars=8, n_freq_steps=6,
     # log-polar stimuli and csv
     stim, mask = _create_stim(pixel_diameter, freqs, phi, n_exemplars, output_dir,
                               stimuli_name, stimuli_description_csv_name,
-                              ['w_r', 'w_a', 'phi', 'res', 'index', 'class_idx'], 'logpolar')
+                              ['w_r', 'w_a', 'phi', 'res', 'class_idx', 'phase_idx'], 'logpolar')
     json_to_save = {'mask_radius_degrees': find_ecc_range_in_degrees(mask, degree_diameter/2, 0)[0],
                     'mask_radius_pixels': find_ecc_range_in_pixels(mask, 0)[0]}
     with open(os.path.join(output_dir, mask_json_name), 'w') as f:
@@ -1145,7 +1156,7 @@ def main(pixel_diameter=714, degree_diameter=8.4, n_exemplars=8, n_freq_steps=6,
                                     stimuli_name.replace('task-sfp', 'task-sfpconstant'),
                                     stimuli_description_csv_name.replace('task-sfp',
                                                                          'task-sfpconstant'),
-                                    ['w_x', 'w_y', 'phi', 'res', 'index', 'class_idx'],
+                                    ['w_x', 'w_y', 'phi', 'res', 'class_idx', 'phase_idx'],
                                     'constant', mask)
     mat_save_dict['constant_stimuli'] = constant_stim
     mat_save_dict.update(json_to_save)
