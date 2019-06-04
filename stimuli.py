@@ -312,7 +312,7 @@ def _calc_sf_analytically(x, y, stim_type='logpolar', w_r=None, w_a=None, w_x=No
     this should NOT be called directly. it is the function that gets called by `sf_cpp` and
     `create_sf_maps_cpp`.
     """
-    if stim_type in ['logpolar', 'pilot']:
+    if stim_type == 'logpolar':
         if w_r is None or w_a is None or w_x is not None or w_y is not None:
             raise Exception("When stim_type is %s, w_r / w_a must be set and w_x / w_y must be"
                             " None!" % stim_type)
@@ -329,16 +329,11 @@ def _calc_sf_analytically(x, y, stim_type='logpolar', w_r=None, w_a=None, w_x=No
     # and y components). g(X_0) is the phase of the approximation and so not important here, but
     # that g'(X_0) is the local spatial frequency that we're interested in. Thus we take the
     # derivative of our log polar grating function with respect to x and y in order to get dx and
-    # dy, respectively (after some re-arranging and cleaning up). the logpolar and pilot stimuli
-    # have different dx / dy values because they were generated using different functions and the
-    # constant stimuli, by definition, have a constant spatial frequency every where in the image.
+    # dy, respectively (after some re-arranging and cleaning up). the constant stimuli, by
+    # definition, have a constant spatial frequency every where in the image.
     if stim_type == 'logpolar':
         dy = (y * w_r + w_a * x) / (x**2 + y**2)
         dx = (x * w_r - w_a * y) / (x**2 + y**2)
-    elif stim_type == 'pilot':
-        alpha = 50
-        dy = (2*y*(w_r/np.pi)) / ((x**2 + y**2 + alpha**2) * np.log(2)) + (w_a * x) / (x**2 + y**2)
-        dx = (2*x*(w_r/np.pi)) / ((x**2 + y**2 + alpha**2) * np.log(2)) - (w_a * y) / (x**2 + y**2)
     elif stim_type == 'constant':
         try:
             size = x.shape
@@ -350,7 +345,7 @@ def _calc_sf_analytically(x, y, stim_type='logpolar', w_r=None, w_a=None, w_x=No
         except (SyntaxError, TypeError, AttributeError):
             dy = w_y
             dx = w_x
-    if stim_type in ['logpolar', 'pilot']:
+    if stim_type == 'logpolar':
         # Since x, y are in pixels (and so run from ~0 to ~size/2), dx and dy need to be divided by
         # 2*pi in order to get the frequency in cycles / pixel. This is analogous to the 1d case:
         # if x runs from 0 to 1 and f(x) = cos(w * x), then the number of cycles in f(x) is w /
@@ -382,13 +377,13 @@ def sf_cpp(eccen, angle, stim_type='logpolar', w_r=None, w_a=None, w_x=None, w_y
     eccen, angle: floats. The location you want to find the spatial frequency for, in polar
     coordinates. eccen should be in pixels, NOT degrees. angle should be in radians.
 
-    stim_type: {'logpolar', 'constant', 'pilot'}. which type of stimuli to generate the spatial
-    frequency map for. This matters because we determine the spatial frequency maps analytically
-    and so *cannot* do so in a stimulus-driven manner. if 'logpolar', the log-polar gratings
-    created by log_polar_grating. if 'constant', the constant gratings created by
-    create_sin_cpp (and gen_constant_stim_set). if 'pilot', the log-polar gratings created by
-    a former version of the log_polar_grating function, with alpha=50. If 'constant', then w_x and
-    w_y must be set, w_r and w_a must be None; if 'logpolar' or 'pilot', then the opposite.
+    stim_type: {'logpolar', 'constant'}. which type of stimuli to generate the spatial frequency
+    map for. This matters because we determine the spatial frequency maps analytically and so
+    *cannot* do so in a stimulus-driven manner. if 'logpolar', the log-polar gratings created by
+    log_polar_grating. if 'constant', the constant gratings created by create_sin_cpp (and
+    gen_constant_stim_set). If 'constant', then w_x and w_y must be set, w_r and w_a must be None;
+    if 'logpolar', then the opposite.
+
     """
     x = eccen * np.cos(angle)
     y = eccen * np.sin(angle)
@@ -399,8 +394,8 @@ def sf_cpp(eccen, angle, stim_type='logpolar', w_r=None, w_a=None, w_x=None, w_y
     return _calc_sf_analytically(x, y, stim_type, w_r, w_a, w_x, w_y)
 
 
-def sf_cpd(size, max_visual_angle, eccen, angle, stim_type='logpolar', w_r=None, w_a=None,
-           w_x=None, w_y=None):
+def sf_cpd(eccen, angle, pixel_diameter=714, degree_diameter=8.4, stim_type='logpolar', w_r=None,
+           w_a=None, w_x=None, w_y=None):
     """calculate the spatial frequency in cycles per degree.
 
     this function returns spatial frequency values; it returns values that give the spatial
@@ -417,21 +412,21 @@ def sf_cpd(size, max_visual_angle, eccen, angle, stim_type='logpolar', w_r=None,
     angle increases. This is all so it corresponds to the values for the direction of the spatial
     frequency.
 
-    max_visual_angle: int, the visual angle (in degrees) corresponding to the largest dimension of
-    the full image (on NYU CBI's prisma scanner and the set up the Winawer lab uses, this is 24)
+    degree_diameter: int, the visual angle (in degrees) corresponding to the diameter of the full
+    image
 
     eccen, angle: floats. The location you want to find the spatial frequency for, in polar
     coordinates. eccen should be in degrees (NOT pixels). angle should be in radians.
 
-    stim_type: {'logpolar', 'constant', 'pilot'}. which type of stimuli to generate the spatial
-    frequency map for. This matters because we determine the spatial frequency maps analytically
-    and so *cannot* do so in a stimulus-driven manner. if 'logpolar', the log-polar gratings
-    created by log_polar_grating. if 'constant', the constant gratings created by
-    create_sin_cpp (and gen_constant_stim_set). if 'pilot', the log-polar gratings created by
-    a former version of the log_polar_grating function, with alpha=50. If 'constant', then w_x and
-    w_y must be set, w_r and w_a must be None; if 'logpolar' or 'pilot', then the opposite.
+    stim_type: {'logpolar', 'constant'}. which type of stimuli to generate the spatial frequency
+    map for. This matters because we determine the spatial frequency maps analytically and so
+    *cannot* do so in a stimulus-driven manner. if 'logpolar', the log-polar gratings created by
+    log_polar_grating. if 'constant', the constant gratings created by create_sin_cpp (and
+    gen_constant_stim_set). If 'constant', then w_x and w_y must be set, w_r and w_a must be None;
+    if 'logpolar', the opposite.
+
     """
-    conversion_factor = max_visual_angle / float(size)
+    conversion_factor = degree_diameter / pixel_diameter
     # this is in degrees, so we divide it by deg/pix to get the eccen in pix
     eccen /= conversion_factor
     dx, dy, magnitude, direction = sf_cpp(eccen, angle, stim_type, w_r, w_a, w_x, w_y)
@@ -442,8 +437,8 @@ def sf_cpd(size, max_visual_angle, eccen, angle, stim_type='logpolar', w_r=None,
     return dx, dy, magnitude, direction
 
 
-def sf_origin_polar_cpd(size, max_visual_angle, eccen, angle, stim_type='logpolar', w_r=None,
-                        w_a=None, w_x=None, w_y=None):
+def sf_origin_polar_cpd(eccen, angle, pixel_diameter=714, degree_diameter=8.4,
+                        stim_type='logpolar', w_r=None, w_a=None, w_x=None, w_y=None):
     """calculate the local origin-referenced polar spatial frequency (radial/angular) in cpd
 
     returns the local spatial frequency with respect to the radial and angular directions.
@@ -453,29 +448,30 @@ def sf_origin_polar_cpd(size, max_visual_angle, eccen, angle, stim_type='logpola
     angle increases. This is all so it corresponds to the values for the direction of the spatial
     frequency.
 
-    max_visual_angle: int, the visual angle (in degrees) corresponding to the largest dimension of
-    the full image (on NYU CBI's prisma scanner and the set up the Winawer lab uses, this is 24)
+    pixel_diameter: int, the visual angle (in degrees) corresponding to the diameter of the full
+    image
 
     eccen, angle: floats. The location you want to find the spatial frequency for, in polar
     coordinates. eccen should be in degrees (NOT pixels). angle should be in radians.
 
-    stim_type: {'logpolar', 'constant', 'pilot'}. which type of stimuli to generate the spatial
-    frequency map for. This matters because we determine the spatial frequency maps analytically
-    and so *cannot* do so in a stimulus-driven manner. if 'logpolar', the log-polar gratings
-    created by log_polar_grating. if 'constant', the constant gratings created by
-    create_sin_cpp (and gen_constant_stim_set). if 'pilot', the log-polar gratings created by
-    a former version of the log_polar_grating function, with alpha=50. If 'constant', then w_x and
-    w_y must be set, w_r and w_a must be None; if 'logpolar' or 'pilot', then the opposite.
+    stim_type: {'logpolar', 'constant'}. which type of stimuli to generate the spatial frequency
+    map for. This matters because we determine the spatial frequency maps analytically and so
+    *cannot* do so in a stimulus-driven manner. if 'logpolar', the log-polar gratings created by
+    log_polar_grating. if 'constant', the constant gratings created by create_sin_cpp (and
+    gen_constant_stim_set). If 'constant', then w_x and w_y must be set, w_r and w_a must be None;
+    if 'logpolar', then the opposite.
+
     """
-    _, _, mag, direc = sf_cpd(size, max_visual_angle, eccen, angle, stim_type, w_r, w_a, w_x, w_y)
+    _, _, mag, direc = sf_cpd(eccen, angle, pixel_diameter, degree_diameter, stim_type, w_r, w_a,
+                              w_x, w_y)
     new_angle = np.mod(direc - angle, 2*np.pi)
     dr = mag * np.cos(new_angle)
     da = mag * np.sin(new_angle)
     return dr, da, new_angle
 
 
-def create_sf_maps_cpp(size, origin=None, scale_factor=1, stim_type='logpolar', w_r=None, w_a=None,
-                       w_x=None, w_y=None):
+def create_sf_maps_cpp(pixel_diameter=714, origin=None, scale_factor=1, stim_type='logpolar',
+                       w_r=None, w_a=None, w_x=None, w_y=None):
     """Create maps of spatial frequency in cycles per pixel.
 
     this function creates spatial frequency maps; that is, it returns images that show the spatial
@@ -487,21 +483,21 @@ def create_sf_maps_cpp(size, origin=None, scale_factor=1, stim_type='logpolar', 
     In most cases, you want the magnitude, as this is the local spatial frequency of the
     corresponding log polar grating at that point.
 
-    stim_type: {'logpolar', 'constant', 'pilot'}. which type of stimuli to generate the spatial
-    frequency map for. This matters because we determine the spatial frequency maps analytically
-    and so *cannot* do so in a stimulus-driven manner. if 'logpolar', the log-polar gratings
-    created by log_polar_grating. if 'constant', the constant gratings created by
-    create_sin_cpp (and gen_constant_stim_set). if 'pilot', the log-polar gratings created by
-    a former version of the log_polar_grating function, with alpha=50. If 'constant', then w_x and
-    w_y must be set, w_r and w_a must be None; if 'logpolar' or 'pilot', then the opposite.
+    stim_type: {'logpolar', 'constant'}. which type of stimuli to generate the spatial frequency
+    map for. This matters because we determine the spatial frequency maps analytically and so
+    *cannot* do so in a stimulus-driven manner. if 'logpolar', the log-polar gratings created by
+    log_polar_grating. if 'constant', the constant gratings created by create_sin_cpp (and
+    gen_constant_stim_set). If 'constant', then w_x and w_y must be set, w_r and w_a must be None;
+    if 'logpolar', then the opposite.
+
     """
-    assert not hasattr(size, '__iter__'), "Only square images permitted, size must be a scalar!"
-    size = int(size)
+    assert not hasattr(pixel_diameter, '__iter__'), "Only square images permitted, pixel_diameter must be a scalar!"
+    pixel_diameter = int(pixel_diameter)
     if origin is None:
-        origin = ((size+1) / 2., (size+1) / 2.)
+        origin = ((pixel_diameter+1) / 2., (pixel_diameter+1) / 2.)
     # we do this in terms of x and y
-    x, y = np.divide(np.meshgrid(np.array(list(range(1, size+1))) - origin[0],
-                                 np.array(list(range(1, size+1))) - origin[1]),
+    x, y = np.divide(np.meshgrid(np.array(list(range(1, pixel_diameter+1))) - origin[0],
+                                 np.array(list(range(1, pixel_diameter+1))) - origin[1]),
                      scale_factor)
     # if the origin is set such that it lies directly on a pixel, then one of the pixels will have
     # distance 0 and that means we'll have a divide by zero coming up. this little hack avoids that
@@ -513,8 +509,8 @@ def create_sf_maps_cpp(size, origin=None, scale_factor=1, stim_type='logpolar', 
     return _calc_sf_analytically(x, y, stim_type, w_r, w_a, w_x, w_y)
 
 
-def create_sf_maps_cpd(size, max_visual_angle, origin=None, scale_factor=1, stim_type='logpolar',
-                       w_r=None, w_a=None, w_x=None, w_y=None):
+def create_sf_maps_cpd(pixel_diameter=714, degree_diameter=7.4, origin=None, scale_factor=1,
+                       stim_type='logpolar', w_r=None, w_a=None, w_x=None, w_y=None):
     """Create map of the spatial frequency in cycles per degree of visual angle
 
     this function creates spatial frequency maps; that is, it returns images that show the spatial
@@ -526,41 +522,37 @@ def create_sf_maps_cpd(size, max_visual_angle, origin=None, scale_factor=1, stim
     In most cases, you want the magnitude, as this is the local spatial frequency of the
     corresponding log polar grating at that point
 
-    Parameters
-    ============
-
-    max_visual_angle: int, the visual angle (in degrees) corresponding to the largest dimension of
-    the full image (on NYU CBI's prisma scanner and the set up the Winawer lab uses, this is 24)
     """
-    conversion_factor = max_visual_angle / float(size)
-    dx, dy, mag, direc = create_sf_maps_cpp(size, origin, scale_factor, stim_type, w_r, w_a, w_x,
-                                            w_y)
+    conversion_factor = degree_diameter / pixel_diameter
+    dx, dy, mag, direc = create_sf_maps_cpp(pixel_diameter, origin, scale_factor, stim_type, w_r,
+                                            w_a, w_x, w_y)
     dx /= conversion_factor
     dy /= conversion_factor
     mag /= conversion_factor
     return dx, dy, mag, direc
 
 
-def create_sf_origin_polar_maps_cpd(size, max_visual_angle, origin=None, scale_factor=1,
-                                    stim_type='logpolar', w_r=None, w_a=None, w_x=None, w_y=None):
+def create_sf_origin_polar_maps_cpd(pixel_diameter=714, degree_diameter=8.4, origin=None,
+                                    scale_factor=1, stim_type='logpolar', w_r=None, w_a=None,
+                                    w_x=None, w_y=None):
     """create map of the origin-referenced polar spatial frequency (radial/angular) in cpd
 
     returns maps of the spatial frequency with respect to the radial and angular directions.
 
-    max_visual_angle: int, the visual angle (in degrees) corresponding to the largest dimension of
-    the full image (on NYU CBI's prisma scanner and the set up the Winawer lab uses, this is 24)
+    degree_diameter: int, the visual angle (in degrees) corresponding to the diameter of the full
+    image
 
-    stim_type: {'logpolar', 'constant', 'pilot'}. which type of stimuli to generate the spatial
-    frequency map for. This matters because we determine the spatial frequency maps analytically
-    and so *cannot* do so in a stimulus-driven manner. if 'logpolar', the log-polar gratings
-    created by log_polar_grating. if 'constant', the constant gratings created by
-    create_sin_cpp (and gen_constant_stim_set). if 'pilot', the log-polar gratings created by
-    a former version of the log_polar_grating function, with alpha=50. If 'constant', then w_x and
-    w_y must be set, w_r and w_a must be None; if 'logpolar' or 'pilot', then the opposite.
+    stim_type: {'logpolar', 'constant'}. which type of stimuli to generate the spatial frequency
+    map for. This matters because we determine the spatial frequency maps analytically and so
+    *cannot* do so in a stimulus-driven manner. if 'logpolar', the log-polar gratings created by
+    log_polar_grating. if 'constant', the constant gratings created by create_sin_cpp (and
+    gen_constant_stim_set).If 'constant', then w_x and w_y must be set, w_r and w_a must be None;
+    if 'logpolar', then the opposite.
+
     """
-    _, _, mag, direc = create_sf_maps_cpd(size, max_visual_angle, origin, scale_factor, stim_type,
-                                          w_r, w_a, w_x, w_y)
-    angle = mkAngle(size, origin=origin)
+    _, _, mag, direc = create_sf_maps_cpd(pixel_diameter, degree_diameter, origin, scale_factor,
+                                          stim_type, w_r, w_a, w_x, w_y)
+    angle = mkAngle(pixel_diameter, origin=origin)
     new_angle = np.mod(direc - angle, 2*np.pi)
     dr = mag * np.cos(new_angle)
     da = mag * np.sin(new_angle)
@@ -636,7 +628,7 @@ def check_aliasing_with_mask(size, w_r=0, w_a=0, phi=0, ampl=1, origin=None, sca
     return stim, fmask, mask, better_sampled_stim, big_fmask, big_mask
 
 
-def find_ecc_range_in_pixels(stim, mid_val=128):
+def find_ecc_range_in_pixels(stim, mid_val=127):
     """find the min and max eccentricity of the stimulus, in pixels
 
     all of our stimuli have a central aperture where nothing is presented and an outside limit,
@@ -654,7 +646,7 @@ def find_ecc_range_in_pixels(stim, mid_val=128):
     return R[x, y].min(), R[x, y].max()
 
 
-def find_ecc_range_in_degrees(stim, stim_rad_deg, mid_val=128):
+def find_ecc_range_in_degrees(stim, degree_radius, mid_val=127):
     """find the min and max eccentricity of the stimulus, in degrees
 
     all of our stimuli have a central aperture where nothing is presented and an outside limit,
@@ -675,52 +667,50 @@ def find_ecc_range_in_degrees(stim, stim_rad_deg, mid_val=128):
     # if stim_rad_deg corresponds to the max vertical/horizontal extent, the actual max will be
     # np.sqrt(2*stim_rad_deg**2) (this corresponds to the far corner). this should be the radius of
     # the screen, because R starts from the center and goes to the edge
-    factor = R.max() / np.sqrt(2*stim_rad_deg**2)
+    factor = R.max() / np.sqrt(2*degree_radius**2)
     return Rmin / factor, Rmax / factor
 
 
-def calculate_stim_local_sf(stim, w_1, w_2, stim_type, eccens, angles, stim_rad_deg=4.2,
-                            plot_flag=False, mid_val=128):
+def calculate_stim_local_sf(stim, w_1, w_2, stim_type, eccens, angles, degree_radius=4.2,
+                            plot_flag=False, mid_val=127):
     """calculate the local spatial frequency for a specified stimulus and screen size
 
     stim: 2d array of floats. an example stimulus. used to determine where the stimuli are masked
     (and thus where the spatial frequency is zero).
 
     w_1, w_2: ints or floats. the first and second components of the stimulus's spatial
-    frequency. if stim_type is 'logarpolar' or 'pilot', this should be the radial and angular
-    components (in that order!); if stim_type is 'constant', this should be the x and y components
-    (in that order!)
+    frequency. if stim_type is 'logarpolar', this should be the radial and angular components (in
+    that order!); if stim_type is 'constant', this should be the x and y components (in that
+    order!)
 
-    stim_type: {'logpolar', 'constant', 'pilot'}. which type of stimuli were used in the session
-    we're analyzing. This matters because it changes the local spatial frequency and, since that is
+    stim_type: {'logpolar', 'constant'}. which type of stimuli were used in the session we're
+    analyzing. This matters because it changes the local spatial frequency and, since that is
     determined analytically and not directly from the stimuli, we have no way of telling otherwise.
 
     eccens, angles: lists of floats. these are the eccentricities and angles we want to find
     local spatial frequency for.
 
-    stim_rad_deg: float, the radius of the stimulus, in degrees of visual angle
+    degree_radius: float, the radius of the stimulus, in degrees of visual angle
 
     plot_flag: boolean, optional, default False. Whether to create a plot showing the local spatial
     frequency vs eccentricity for the specified stimulus
 
-    mid_val: int. the value of mid-grey in the stimuli, should be 127 (for pilot stimuli) or 128
-    (for actual stimuli)
+    mid_val: int. the value of mid-grey in the stimuli, should be 127 or 128
+
     """
-    eccen_min, eccen_max = find_ecc_range_in_degrees(stim, stim_rad_deg, mid_val)
+    eccen_min, eccen_max = find_ecc_range_in_degrees(stim, degree_radius, mid_val)
     eccen_local_freqs = []
     for i, (e, a) in enumerate(zip(eccens, angles)):
-        if stim_type in ['logpolar', 'pilot']:
-            dx, dy, mag, direc = sf_cpd(stim.shape[0], stim_rad_deg*2, e, a,
+        if stim_type == 'logpolar':
+            dx, dy, mag, direc = sf_cpd(e, a, stim.shape[0], degree_radius*2,
                                         stim_type=stim_type, w_r=w_1, w_a=w_2)
-            dr, da, new_angle = sf_origin_polar_cpd(stim.shape[0], stim_rad_deg*2, e,
-                                                    a, stim_type=stim_type, w_r=w_1,
-                                                    w_a=w_2)
+            dr, da, new_angle = sf_origin_polar_cpd(e, a, stim.shape[0], degree_radius*2,
+                                                    stim_type=stim_type, w_r=w_1, w_a=w_2)
         elif stim_type == 'constant':
-            dx, dy, mag, direc = sf_cpd(stim.shape[0], stim_rad_deg*2, e, a,
-                                        stim_type=stim_type, w_x=w_1, w_y=w_2)
-            dr, da, new_angle = sf_origin_polar_cpd(stim.shape[0], stim_rad_deg*2, e,
-                                                    a, stim_type=stim_type, w_x=w_1,
-                                                    w_y=w_2)
+            dx, dy, mag, direc = sf_cpd(e, a, stim.shape[0], degree_radius*2, stim_type=stim_type,
+                                        w_x=w_1, w_y=w_2)
+            dr, da, new_angle = sf_origin_polar_cpd(e, a, stim.shape[0], degree_radius*2,
+                                                    stim_type=stim_type, w_x=w_1, w_y=w_2)
         eccen_local_freqs.append(pd.DataFrame(
             {'local_w_x': dx, 'local_w_y': dy, 'local_w_r': dr, 'local_w_a': da, 'eccen': e,
              'angle': a, 'local_sf_magnitude': mag, 'local_sf_xy_direction': direc,
@@ -737,8 +727,8 @@ def calculate_stim_local_sf(stim, w_1, w_2, stim_type, eccens, angles, stim_rad_
     return eccen_local_freqs
 
 
-def check_stim_properties(size, origin, max_visual_angle, w_r=0, w_a=range(10),
-                          eccen_range=(1, 4.2)):
+def check_stim_properties(pixel_diameter=714, origin=None, degree_diameter=8.4, w_r=0,
+                          w_a=range(10), eccen_range=(1, 4.2)):
     """Creates a dataframe with data on several stimulus properties, based on the specified arguments
 
     the properties examined are:
@@ -760,43 +750,44 @@ def check_stim_properties(size, origin, max_visual_angle, w_r=0, w_a=range(10),
     Note that we don't calculate the min masked frequency because that will always be zero (because
     we zero out the center of the image, where the frequency is at its highest).
 
-    note that size, origin, and max_visual_angle must have only one value, w_r and w_a can be lists
-    or single values (and all combinations of them will be checked)
+    note that pixel_diameter, origin, and degree_diameter must have only one value, w_r and w_a can
+    be lists or single values (and all combinations of them will be checked)
+
     """
-    if hasattr(size, '__iter__'):
-        raise Exception("size must *not* be iterable! All generated stimuli must be the same size")
+    if hasattr(pixel_diameter, '__iter__'):
+        raise Exception("pixel_diameter must *not* be iterable! All generated stimuli must be the same pixel_diameter")
     if hasattr(origin, '__iter__'):
         raise Exception("only one value of origin at a time!")
-    if hasattr(max_visual_angle, '__iter__'):
-        raise Exception("only one value of max_visual_angle at a time!")
+    if hasattr(degree_diameter, '__iter__'):
+        raise Exception("only one value of degree_diameter at a time!")
     if not hasattr(w_r, '__iter__'):
         w_r = [w_r]
     if not hasattr(w_a, '__iter__'):
         w_a = [w_a]
-    rad = mkR(size, origin=origin)
+    rad = mkR(pixel_diameter, origin=origin)
     mask_df = []
     sf_df = []
-    eccens = [(i+i+1)/2 for i in range(*eccen_range)]
+    eccens = [(i+i+1)/2 for i in np.linspace(*eccen_range, 10)]
     angles = [0 for i in eccens]
     for i, (f_r, f_a) in enumerate(itertools.product(w_r, w_a)):
-        fmask, mask = create_antialiasing_mask(size, f_r, f_a, origin, 0)
-        _, _, mag_cpp, _ = create_sf_maps_cpp(size, origin, w_r=f_r, w_a=f_a)
-        _, _, mag_cpd, _ = create_sf_maps_cpd(size, max_visual_angle, origin, w_r=f_r, w_a=f_a)
+        fmask, mask = create_antialiasing_mask(pixel_diameter, f_r, f_a, origin, 0)
+        _, _, mag_cpp, _ = create_sf_maps_cpp(pixel_diameter, origin, w_r=f_r, w_a=f_a)
+        _, _, mag_cpd, _ = create_sf_maps_cpd(pixel_diameter, degree_diameter, origin, w_r=f_r, w_a=f_a)
         data = {'mask_radius_pix': (~mask*rad).max(), 'w_r': f_r, 'w_a': f_a,
                 'freq_distance': np.sqrt(f_r**2 + f_a**2)}
-        data['mask_radius_deg'] = data['mask_radius_pix'] / (rad.max() / np.sqrt(2*(max_visual_angle/2.)**2))
+        data['mask_radius_deg'] = data['mask_radius_pix'] / (rad.max() / np.sqrt(2*(degree_diameter/2.)**2))
         for name, mag in zip(['cpp', 'cpd'], [mag_cpp, mag_cpd]):
             data[name + "_max"] = mag.max()
             data[name + "_min"] = mag.min()
             data[name + "_masked_max"] = (fmask * mag).max()
         mask_df.append(pd.DataFrame(data, index=[i]))
-        sf = calculate_stim_local_sf(np.ones((size, size)), f_r, f_a,
+        sf = calculate_stim_local_sf(np.ones((pixel_diameter, pixel_diameter)), f_r, f_a,
                                                           'logpolar', eccens, angles,
-                                                          max_visual_angle/2)
+                                                          degree_diameter/2)
         sf = sf.rename(columns={'local_sf_magnitude': 'local_freq_cpd'})
         sf['w_r'] = f_r
         sf['w_a'] = f_a
-        sf['local_freq_cpp'] = sf['local_freq_cpd'] / (rad.max() / np.sqrt(2*(max_visual_angle/2.)**2))
+        sf['local_freq_cpp'] = sf['local_freq_cpd'] / (rad.max() / np.sqrt(2*(degree_diameter/2.)**2))
         # period is easier to think about
         sf['local_period_ppc'] = 1. / sf['local_freq_cpp']
         sf['local_period_dpc'] = 1. / sf['local_freq_cpd']
@@ -814,7 +805,7 @@ def _set_ticklabels(datashape):
     return xticklabels, yticklabels
 
 
-def plot_stim_properties(mask_df, x='w_a', y='w_r', data_label='mask_radius_cpp',
+def plot_stim_properties(mask_df, x='w_a', y='w_r', data_label='mask_radius_pix',
                          title_text="Mask radius in pixels",
                          fancy_labels={"w_a": r"$\omega_a$", "w_r": r"$\omega_r$"},
                          **kwargs):
@@ -864,8 +855,8 @@ def gen_log_polar_stim_set(size, freqs_ra=[(0, 0)], phi=[0], ampl=[1], origin=No
     create radial and angular stimuli, just include 0 in w_a or w_r, respectively).
 
     bytescale: boolean, default True. if True, calls bytescale(cmin=-1, cmax=1) on image to rescale
-    it to between 0 and 255, with dtype uint8. this is done because this is probably sufficient for
-    displays and takes up much less space.
+    it to between 0 and 254 (mid-value is 127), with dtype uint8. this is done because this is
+    probably sufficient for displays and takes up much less space.
 
 
     Returns
@@ -959,8 +950,8 @@ def gen_constant_stim_set(size, mask, freqs_xy=[(0, 0)], phi=[0], ampl=[1], orig
     w_y). They sould be in cycles per pixel.
 
     bytescale: boolean, default True. if True, calls bytescale(cmin=-1, cmax=1) on image to rescale
-    it to between 0 and 255, with dtype uint8. this is done because this is probably sufficient for
-    displays and takes up much less space.
+    it to between 0 and 254 (mid-value is 127), with dtype uint8. this is done because this is
+    probably sufficient for displays and takes up much less space.
 
 
     Returns
@@ -1001,171 +992,164 @@ def gen_constant_stim_set(size, mask, freqs_xy=[(0, 0)], phi=[0], ampl=[1], orig
     return masked_stimuli, stimuli
 
 
-def _gen_freqs(base_freqs, round_flag=True):
+def _gen_freqs(base_freqs, n_orientations=4, n_intermed_samples=2, round_flag=True):
     """turn the base frequencies into the full set.
 
     base frequencies are the distance from the center of frequency space.
+
+    n_orientations: int, the number of "canonical orientations". That is, the number of
+    orientations that should use the base_freqs. We will equally sample orientation space, so that
+    if n_orientations==4, then we'll use angles 0, pi/4, pi/2, 3*pi/4
+
+    n_intermed_samples: int, the number of samples at the intermediate frequency. In order to
+    sample some more orientations, we pick the middle frequency out of base_freqs and then sample
+    n_intermed_samples times between the canonical orientations at that frequency. For example, if
+    this is 2 and n_orientations is 4, we will sample the intermediate frequency at pi/12, 2*pi/12,
+    4*pi/12, 5*pi/12, 7*pi/12, 8*pi/12, 10*pi/12, 11*pi/12.
+
     """
-    # radial / vertical, where w_r/w_x=0
-    freqs = [(0, f) for f in base_freqs]
-    # angular / horizontal, where w_a/w_y=0
-    freqs.extend([(f, 0) for f in base_freqs])
-    # spirals / diagonals, where w_a/w_y=w_r/w_x or -w_a/-w_y=w_r/w_x
-    freqs.extend([(f*np.sin(np.pi/4), f*np.sin(np.pi/4)) for f in base_freqs])
-    freqs.extend([(f*np.sin(np.pi/4), -f*np.sin(np.pi/4)) for f in base_freqs])
+    intermed_freq = base_freqs[len(base_freqs)//2]
+    ori_angles = [np.pi*1/n_orientations*i for i in range(n_orientations)]
+    # the following determines how to step through the angles so to get n_intermed_angles different
+    # intermediary angles
+    n_intermed_steps = int(n_orientations * (n_intermed_samples+1))
+    intermed_locs = [i for i in range(n_intermed_steps)
+                     if i % (n_intermed_steps/n_orientations) != 0]
+    intermed_angles = [np.pi*1/n_intermed_steps*i for i in intermed_locs]
+    # these are the canonical orientations
+    freqs = [(f*np.sin(a), f*np.cos(a)) for a, f in itertools.product(ori_angles, base_freqs)]
     # arc, where distance from the origin is half the max (in log space)
     #  skip those values which we've already gotten: 0, pi/4, pi/2, 3*pi/4, and pi
-    angles = [np.pi*1/12.*i for i in [1, 2, 4, 5, 7, 8, 10, 11]]
-    freqs.extend([(base_freqs[len(base_freqs)//2]*np.sin(i),
-                   base_freqs[len(base_freqs)//2]*np.cos(i)) for i in angles])
+    freqs.extend([(intermed_freq*np.sin(i),
+                   intermed_freq*np.cos(i)) for i in intermed_angles])
     if round_flag:
         freqs = np.round(freqs)
     return freqs
 
 
-def _create_stim(res, freqs, phi, num_blank_trials, n_exemplars, output_dir, stimuli_name,
+def _create_stim(res, freqs, phi, n_exemplars, output_dir, stimuli_name,
                  stimuli_description_csv_name, col_names, stim_type, mask=None):
     """helper function to create the stimuli and and stimuli description csv
 
     stim_type: {'logpolar', 'constant'}. which type of stimuli to make. determines which function
-    to call, gen_log_polar_stim_set or gen_constant_stim_set. if constnat, mask must be set
+    to call, gen_log_polar_stim_set or gen_constant_stim_set. if constant, mask must be set
     """
     if stim_type == 'logpolar':
-        stim, _, mask = gen_log_polar_stim_set(res, freqs, phi)
+        masked_stim, stim, mask = gen_log_polar_stim_set(res, freqs, phi)
     elif stim_type == 'constant':
-        stim, _ = gen_constant_stim_set(res, mask, freqs, phi)
-    stim = np.concatenate([np.array(stim),
-                           bytescale_func(np.zeros((num_blank_trials * n_exemplars, res, res)),
-                                          cmin=-1, cmax=1)])
+        masked_stim, stim = gen_constant_stim_set(res, mask, freqs, phi)
     np.save(os.path.join(output_dir, stimuli_name), stim)
 
     # log-polar csv
     df = []
     for i, ((w_1, w_2), p) in enumerate(itertools.product(freqs, phi)):
         df.append((w_1, w_2, p, res, i, i / n_exemplars))
-    max_idx = i+1
-    for i, _ in enumerate(itertools.product(range(num_blank_trials), phi)):
-        df.append((None, None, None, res, i+max_idx, None))
     df = pd.DataFrame(df, columns=col_names)
     df.to_csv(os.path.join(output_dir, stimuli_description_csv_name), index=False)
     return stim, mask
 
 
-def main(subject_name, output_dir="../data/stimuli/", create_stim=True, create_idx=True,
-         seed=None, stimuli_name='unshuffled.npy',
-         stimuli_description_csv_name='unshuffled_stim_description.csv'):
+def main(pixel_diameter=714, degree_diameter=8.4, n_exemplars=8, n_freq_steps=6,
+         n_logpolar_orientations=4, n_constant_orientations=8, n_logpolar_intermed_samples=1,
+         n_constant_intermed_samples=0, constant_freq_target_eccen=2.5,
+         output_dir="../data/stimuli/", stimuli_name='task-sfp_stimuli.npy',
+         mask_json_name="task-sfp_mask.json", mat_file_name="spatialFreqStim.mat",
+         stimuli_description_csv_name='task-sfp_stim_description.csv'):
     """create the stimuli for the spatial frequency preferences experiment
 
+    We save the unmasked stimuli, along with a json file that describes the radius we think is
+    necessary (in pixels and in degrees) of the anti-aliasing mask.
+
     Our stimuli are constructed from a 2d frequency space, with w_r on the x-axis and w_a on the
-    y. The stimuli we want for our experiment then lie along the x-axis, the y-axis, the + and -
-    45-degree angle lines (that is, x=y and x=-y, y>0 for both), and the arc that connects all of
-    them. For those stimuli that lie along straight lines / axes, they'll have frequencies from
-    2^(2.5) to 2^(7) (distance from the radius) in half-octave increments, while the arc will lie
-    approximately half-way between the two extremes, with radius 2^(7.5-2.5)=32. We don't use the
-    actual half-octave increments, because non-integer frequencies cause obvious breaks (especially
-    in the spirals), so we round all frequencies to the nearest integer.
+    y. By default, the stimuli we want for our experiment then lie along the x-axis, the y-axis,
+    the + and - 45-degree angle lines (that is, x=y and x=-y, y>0 for both), and the arc that
+    connects all of them. For those stimuli that lie along straight lines / axes, they'll have
+    frequencies from 2^(2.5) to 2^(7) (distance from the radius) sampled `n_freq_steps` times,
+    while the arc will lie approximately half-way between the two extremes. We round all
+    frequencies to the nearest integer, because non-integer frequencies cause obvious breaks
+    (especially in the spirals).
 
-    there will be 8 different phases equally spaced from 0 to 2 pi: np.array(range(8))/8.*2*np.pi
+    By changing `n_logpolar_orientations`, you can change the number of "canonical orientations" we
+    sample. Similarly, `n_logpolar_intermed_samples` controls the number of intermediate spirals
+    between each canonical orientations.
 
-    These will be arranged into blocks of 8 so that each stimuli within one block differ only by
-    their phase. We will take this set of stimuli and randomize it, within and across those blocks,
-    to create 12 different orders, for the 12 different runs per scanning session. There will also
-    be 10 blank trials per session, pseudo-randomly interspersed (these will be represented as
-    arrays full of 0s; there will never be two blank trials in a row).
+    We also generate constant stimuli whose spatial frequency approximately matches that of our
+    logpolar ones near `constant_freq_target_eccen`. They will have the same number of frequency
+    steps as the logpolar ones, but can have different numbers of orientations and intermediate
+    samples, controlled by `n_constant_orientations` and `n_constant_intermed_samples`.
 
-    The actual stimuli will be saved as {stimuli_name} in the output_dir, while the indices
-    necessary to shuffle it will be saved at {subj}_run_00_idx.npy through {subj}_run_11_idx.npy. A
-    description of the stimuli properties, in the order found in unshuffled, is saved at
-    {stimuli_description_csv_name} in the output folder, as a pandas DataFrame. In order to view
-    the properties of a shuffled one, load that DataFrame in as df, and the index as idx, then call
-    df.iloc[idx]
+    there will be `n_exemplars` (default 8) different phases equally spaced from 0 to 2 pi:
+    np.array(range(n_exemplars))/n_exemplars.*2*np.pi
 
-    We also save a .mat file which contains the constant and logpolar stimuli, as well as the
-    presentation indices as spatialFreqStim.mat in the output_dir.
+    The actual stimuli will be saved as {stimuli_name} in the output_dir. A description of the
+    stimuli properties, in the order found in the stimuli, is saved at
+    {stimuli_description_csv_name} in the output folder, as a pandas DataFrame. We will also save
+    constant stimuli by replacing "task-sfp" with "task-sfpconstant" in stimuli_name (and doing the
+    same for stimuli_description_csv_name). Therefore, these strings must contain "task-sfp".
 
-    if create_stim is False, then we don't create the stim, just create and save the shuffled
-    indices.
+    We also save a .mat file which contains the constant and logpolar stimuli as
+    spatialFreqStim.mat in the output_dir. This also contains fields that give the radius we think
+    is necessary (in pixels and in degrees) of the anti-aliasing mask.
 
-    seed: the random seed to use for this randomization. if unset, defaults to None. (uses
-    np.random.seed)
-
-    NOTE That if create_idx is True and the indices already exist, this will throw an
-    exception. Similarly if create_stim is True and either the stimuli .npy file or the descriptive
-    dataframe .csv file
-
-    returns (one copy) of the (un-shuffled) stimuli, for inspection.
+    returns the logpolar and constant stimuli
 
     """
-    np.random.seed(seed)
+    if 'task-sfp' not in stimuli_name:
+        raise Exception("stimuli_name must contain task-sfp!")
+    if 'task-sfp' not in stimuli_description_csv_name:
+        raise Exception("stimuli_description_csv_name must contain task-sfp!")
     if not os.path.isdir(output_dir):
         os.makedirs(output_dir)
-    filename = os.path.join(output_dir, "{subj}_run%02d_idx.npy".format(subj=subject_name))
-    nruns = 12
-    num_blank_trials = 10
-    freqs = _gen_freqs([2**i for i in np.arange(2.5, 7.5, .5)], True)
-    # to see where these numbers come from, look at the 02-Stimuli notebook. they're spaced roughly
-    # every half-octave
-    constant_freqs = [-7.72552612, -7.31048862, -6.851057, -6.31048862, -5.78692666, -5.31048862,
-                      -4.81863552, -4.31048862, -3.80269398, -3.31048862]
-    constant_freqs = _gen_freqs([2**i for i in constant_freqs], False)
-    n_classes = len(freqs) + num_blank_trials
-    n_exemplars = 8
+    base_freqs = [2**i for i in np.linspace(2.5, 7, n_freq_steps, endpoint=True)]
+    freqs = _gen_freqs(base_freqs, n_logpolar_orientations, n_logpolar_intermed_samples, True)
+    # in order to determine the spatial frequencies for the constant stimuli, we grab the spatial
+    # frequencies at different eccentricities for the logpolar stimuli we'll create...
+    _, sf_df = check_stim_properties(pixel_diameter, None, degree_diameter, 0,
+                                     np.round(base_freqs))
+    # we won't have exactly this eccentricity in the dataframe because of how we sample the space,
+    # so this grabs the closest one
+    sf_df_eccen = sf_df.eccen.unique()[np.abs(sf_df.eccen.unique() -
+                                              constant_freq_target_eccen).argmin()]
+    # this will then grab the stimuli's spatial frequency at that eccentricity...
+    constant_freqs = sf_df[sf_df.eccen == sf_df_eccen].local_freq_cpp.values
+    # which we pass to _gen_freqs to get the full set of frequencies (with different orientations)
+    constant_freqs = _gen_freqs(constant_freqs, n_constant_orientations,
+                                n_constant_intermed_samples, False)
     phi = np.array(range(n_exemplars))/n_exemplars*2*np.pi
-    res = 714
     # in case we need to return them
     stim, constant_stim = None, None
     mat_save_dict = {}
-    if create_idx:
-        if os.path.isfile(filename % 0):
-            raise Exception("Indices with template %s already exist!" % filename)
-        for i in range(nruns):
-            class_idx = np.array(range(n_classes))
-            # we don't want to have two blank trials in a row, so we use this little method to
-            # avoid that. blank_idx contains the class indices that correspond to blanks, e.g., the
-            # last 10 of them
-            blank_idx = class_idx.copy()[-num_blank_trials:]
-            # this is where they are in the current class_idx
-            blank_loc = np.where(np.in1d(class_idx, blank_idx))[0]
-            # now, if two blanks are next to each other, this will return true and thus we shuffle
-            # class_idx. note that this will always return true the first time, which is good
-            # because we want at least one shuffle. This is the "dumb way" of doing this, which
-            # relies *heavily* on the fact that there aren't many blank trials relative to the
-            # total number of classes.
-            while 1 in (blank_loc[1:] - blank_loc[:-1]):
-                np.random.shuffle(class_idx)
-                blank_loc = np.where(np.in1d(class_idx, blank_idx))[0]
-            class_idx = np.repeat(class_idx * n_exemplars, n_exemplars)
-            ex_idx = []
-            for j in range(n_classes):
-                ex_idx_tmp = np.array(range(n_exemplars))
-                np.random.shuffle(ex_idx_tmp)
-                ex_idx.extend(ex_idx_tmp)
-            np.save(filename % i, class_idx + ex_idx)
-            mat_save_key = "{subj}_run{num:02d}_idx".format(subj=subject_name, num=i)
-            # add the extra 1 because this will be used in matlab
-            mat_save_dict[mat_save_key] = class_idx + ex_idx + 1
-    if create_stim:
-        if os.path.isfile(os.path.join(output_dir, "constant_" + stimuli_name)):
-            raise Exception("unshuffled data already exists!")
-        if os.path.isfile(os.path.join(output_dir, "constant_" + stimuli_description_csv_name)):
-            raise Exception("unshuffled data already exists!")
-        if os.path.isfile(os.path.join(output_dir, stimuli_name)):
-            raise Exception("unshuffled data already exists!")
-        if os.path.isfile(os.path.join(output_dir, stimuli_description_csv_name)):
-            raise Exception("unshuffled data already exists!")
-        # log-polar stimuli and csv
-        stim, mask = _create_stim(res, freqs, phi, num_blank_trials, n_exemplars, output_dir,
-                                  stimuli_name, stimuli_description_csv_name,
-                                  ['w_r', 'w_a', 'phi', 'res', 'index', 'class_idx'], 'logpolar')
-        mat_save_dict['stimuli'] = stim
-        # constant stimuli and csv
-        constant_stim, _ = _create_stim(res, constant_freqs, phi, num_blank_trials, n_exemplars,
-                                        output_dir, "constant_" + stimuli_name,
-                                        "constant_" + stimuli_description_csv_name,
-                                        ['w_x', 'w_y', 'phi', 'res', 'index', 'class_idx'],
-                                        'constant', mask)
-        mat_save_dict['constant_stimuli'] = constant_stim
-    sio.savemat(os.path.join(output_dir, 'spatialFreqStim.mat'), mat_save_dict)
+    if os.path.isfile(os.path.join(output_dir, stimuli_name.replace('task-sfp',
+                                                                    'task-sfpconstant'))):
+        raise Exception("stimuli already exists!")
+    if os.path.isfile(os.path.join(output_dir,
+                                   stimuli_description_csv_name.replace('task-sfp',
+                                                                        'task-sfpconstant'))):
+        raise Exception("stimuli already exists!")
+    if os.path.isfile(os.path.join(output_dir, stimuli_name)):
+        raise Exception("stimuli already exists!")
+    if os.path.isfile(os.path.join(output_dir, stimuli_description_csv_name)):
+        raise Exception("stimuli already exists!")
+    # log-polar stimuli and csv
+    stim, mask = _create_stim(pixel_diameter, freqs, phi, n_exemplars, output_dir,
+                              stimuli_name, stimuli_description_csv_name,
+                              ['w_r', 'w_a', 'phi', 'res', 'index', 'class_idx'], 'logpolar')
+    json_to_save = {'mask_radius_degrees': find_ecc_range_in_degrees(mask, degree_diameter/2, 0)[0],
+                    'mask_radius_pixels': find_ecc_range_in_pixels(mask, 0)[0]}
+    with open(os.path.join(output_dir, mask_json_name), 'w') as f:
+        json.dump(json_to_save, f)
+    mat_save_dict['stimuli'] = stim
+    # constant stimuli and csv
+    constant_stim, _ = _create_stim(pixel_diameter, constant_freqs, phi, n_exemplars,
+                                    output_dir,
+                                    stimuli_name.replace('task-sfp', 'task-sfpconstant'),
+                                    stimuli_description_csv_name.replace('task-sfp',
+                                                                         'task-sfpconstant'),
+                                    ['w_x', 'w_y', 'phi', 'res', 'index', 'class_idx'],
+                                    'constant', mask)
+    mat_save_dict['constant_stimuli'] = constant_stim
+    mat_save_dict.update(json_to_save)
+    sio.savemat(os.path.join(output_dir, mat_file_name), mat_save_dict)
     return stim, constant_stim
 
 
@@ -1175,24 +1159,19 @@ if __name__ == '__main__':
         pass
     parser = argparse.ArgumentParser(description=(main.__doc__),
                                      formatter_class=CustomFormatter)
-    parser.add_argument("--subject_name", help=("The name of the subject for this "
-                        "randomization. Will be used in filename for data."))
     parser.add_argument("--output_dir", '-o', help="directory to place stimuli and indices in",
                         default="data/stimuli")
     parser.add_argument("--stimuli_name", '-n', help="name for the unshuffled stimuli",
-                        default="unshuffled.npy")
+                        default="task-sfp_stimuli.npy")
     parser.add_argument("--stimuli_description_csv_name", '-d',
                         help="name for the csv that describes unshuffled stimuli",
-                        default="unshuffled_stim_description.csv")
-    parser.add_argument("--create_stim", '-c', action="store_true",
-                        help="Create and save the experiment stimuli and descriptive dataframe")
-    parser.add_argument("--create_idx", '-i', action="store_true",
-                        help=("Create and save the 12 randomized indices for this subject"))
-    parser.add_argument("--seed", '-s', default=None, type=int,
-                        help=("Seed to initialize randomizer, for stimuli presentation "
-                              "randomization"))
+                        default="task-sfp_stim_description.csv")
+    parser.add_argument("--mask_json_name", '-j',
+                        help=("name for the json that contains the radius we think necessary for "
+                              "the anti-aliasing mask"),
+                        default="task-sfp_mask.json")
+    parser.add_argument("--mat_file_name", "-m",
+                        help="name for the .mat file that contains the equivalent information",
+                        default="spatialFreqStim.mat")
     args = vars(parser.parse_args())
-    if not args["create_stim"] and not args['create_idx']:
-        print("Nothing to create, exiting...")
-    else:
-        _ = main(**args)
+    _ = main(**args)
