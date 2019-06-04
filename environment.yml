@@ -13,11 +13,7 @@ dependencies:
   - matplotlib
   - scipy
   - seaborn
-  - statsmodels
   - pandas
-  - pyyaml
-  - nipype>=1.1.1
   - pillow
-  - scikit-learn
   - pip:
-      - pybids >= 0.4.2
+      - pyrtools
