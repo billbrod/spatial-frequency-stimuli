@@ -967,8 +967,8 @@ def gen_constant_stim_set(size, mask, freqs_xy=[(0, 0)], phi=[0], ampl=[1], orig
     if hasattr(origin, '__iter__'):
         raise Exception("origin must *not* be iterable! All generated stimuli must have the same "
                         " origin")
-    # this isn't a typo: we want to make sure that freqs_ra is a list of tuples; an easy way to
-    # check is to make sure the *entries* of freqs_ra are iterable
+    # this isn't a typo: we want to make sure that freqs_xy is a list of tuples; an easy way to
+    # check is to make sure the *entries* of freqs_xy are iterable
     if not hasattr(freqs_xy[0], '__iter__'):
         freqs_xy = [freqs_xy]
     if not hasattr(phi, '__iter__'):
