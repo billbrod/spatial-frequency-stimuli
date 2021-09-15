@@ -1068,6 +1068,9 @@ def main(pixel_diameter=714, degree_diameter=8.4, n_exemplars=8, n_freq_steps=6,
     We save the unmasked stimuli, along with a json file that describes the radius we think is
     necessary (in pixels and in degrees) of the anti-aliasing mask.
 
+    See the Tutorial.ipynb notebook for more details about these stimuli and
+    how to use the functions contained within this file.
+
     Our stimuli are constructed from a 2d frequency space, with w_r on the x-axis and w_a on the
     y. By default, the stimuli we want for our experiment then lie along the x-axis, the y-axis,
     the + and - 45-degree angle lines (that is, x=y and x=-y, y>0 for both), and the arc that
@@ -1103,6 +1106,9 @@ def main(pixel_diameter=714, degree_diameter=8.4, n_exemplars=8, n_freq_steps=6,
     We also save a .mat file which contains the constant and logpolar stimuli as
     spatialFreqStim.mat in the output_dir. This also contains fields that give the radius we think
     is necessary (in pixels and in degrees) of the anti-aliasing mask.
+
+    Default argument values are those used in the NSD dataset. The pixel_diameter and degree_diameter
+    values in particular should almost certainly be changed for any other use.
 
     returns the logpolar and constant stimuli
 
@@ -1170,6 +1176,8 @@ if __name__ == '__main__':
         pass
     parser = argparse.ArgumentParser(description=(main.__doc__),
                                      formatter_class=CustomFormatter)
+    parser.add_argument('pixel_diameter', help="Diameter of the stimuli in pixels")
+    parser.add_argument('degree_diameter', help="Diameter of the stimuli in degrees")
     parser.add_argument("--output_dir", '-o', help="directory to place stimuli and indices in",
                         default="data/stimuli")
     parser.add_argument("--stimuli_name", '-n', help="name for the unshuffled stimuli",
