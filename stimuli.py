@@ -821,9 +821,9 @@ def plot_stim_properties(mask_df, x='w_a', y='w_r', data_label='mask_radius_pix'
     cmap = kwargs.pop('cmap', 'Blues')
     font_scale = kwargs.pop('font_scale', 1.5)
     plotting_context = kwargs.pop('plotting_context', 'notebook')
-    size = kwargs.pop('size', 3)
+    height = kwargs.pop('height', 3)
     with sns.plotting_context(plotting_context, font_scale=font_scale):
-        g = sns.FacetGrid(mask_df, size=size)
+        g = sns.FacetGrid(mask_df, height=height)
         cbar_ax = g.fig.add_axes([.92, .3, .02, .4])
         g.map_dataframe(facet_heatmap, x, y, data_label, vmin=0,
                         vmax=mask_df[data_label].max(), cmap=cmap, cbar_ax=cbar_ax, **kwargs)
@@ -1176,8 +1176,8 @@ if __name__ == '__main__':
         pass
     parser = argparse.ArgumentParser(description=(main.__doc__),
                                      formatter_class=CustomFormatter)
-    parser.add_argument('pixel_diameter', help="Diameter of the stimuli in pixels")
-    parser.add_argument('degree_diameter', help="Diameter of the stimuli in degrees")
+    parser.add_argument('pixel_diameter', help="Diameter of the stimuli in pixels", type=int)
+    parser.add_argument('degree_diameter', help="Diameter of the stimuli in degrees", type=float)
     parser.add_argument("--output_dir", '-o', help="directory to place stimuli and indices in",
                         default="data/stimuli")
     parser.add_argument("--stimuli_name", '-n', help="name for the unshuffled stimuli",

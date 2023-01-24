@@ -3,7 +3,7 @@ channels:
   - conda-forge
   - defaults
 dependencies:
-  - python==3.6
+  - python==3.7
   - anaconda
   - pip
   - jupyter
@@ -16,4 +16,4 @@ dependencies:
   - pandas
   - pillow
   - pip:
-      - pyrtools
+      - pyrtools>=1.0

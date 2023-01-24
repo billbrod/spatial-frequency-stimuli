@@ -17,8 +17,9 @@ page](https://osf.io/k2dv5/).
 
 - Navigate to this directory on your command line.
 
-- Run `conda env create -f environment.yml` to install the
-  requirements.
+- Run `conda env create -f environment.yml` to install the requirements (note
+  that python 3.6 was used in the paper, but as of Feb 2023, 3.7 is necessary
+  for conda to be able to solve the environment).
   
 - Run `conda activate sf-stim` to activate the virtual environment you
   just installed.
