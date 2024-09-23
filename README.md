@@ -26,8 +26,11 @@ page](https://osf.io/k2dv5/).
   
 - Run `python stimuli.py -h` to view the docstring.
   
-- Run `python stimuli.py`. You can probably trust the defaults for
-  most things.
+- Run `python stimuli.py 714 8.4` to recreate the files as used by the NSD (and
+  thus to match the files on the OSF).
+  - `714` and `8.4` specify the diameter in pixels and degrees of visual angle,
+    respectively.
+  - You can probably trust the defaults for most things.
   
 - These will all be located in the (newly-created) `data/stimuli`
   folder under this one. The `.npy` files are for using in Python, the
