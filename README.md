@@ -10,6 +10,14 @@ more information on these stimuli.
 The created stimuli files can be found on the associated [OSF
 page](https://osf.io/k2dv5/).
 
+**UPDATE:** In September 2024, updated so that the polar angle increases as you
+go counter-clockwise (to match the standard convention), rather than clockwise.
+This is equivalent to changing `w_a -> -w_a`. Thus, reverse spirals now have
+`w_a=w_r` and forward spirals have `w_a=-w_r`. See release 2.0.0 of the [spatial
+frequency
+preferences](https://github.com/billbrod/spatial-frequency-preferences) repo for
+more details.
+
 ## Usage
 
 - Download and install [miniconda](https://conda.io/miniconda.html)
