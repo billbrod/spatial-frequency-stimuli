@@ -121,12 +121,16 @@ def mkR(size, exponent=1, origin=None):
 def mkAngle(size, phase=0, origin=None):
     '''make polar angle matrix (in radians)
 
-    Compute a matrix of dimension SIZE (a [Y X] list/tuple, or a scalar)
-    containing samples of the polar angle (in radians, CW from the X-axis,
-    ranging from -pi to pi), relative to angle PHASE (default = 0), about ORIGIN
-    pixel (default = (size+1)/2).
+    Compute a matrix of dimension SIZE (a [Y X] list/tuple, or a scalar) containing
+    samples of the polar angle (in radians, increasing counter-clockwise from the right
+    horizontal meridian, ranging from -pi to pi), relative to angle PHASE (default = 0),
+    about ORIGIN pixel (default = (size+1)/2).
+
+    Note that setting phase effectively changes where angle=0 lies (e.g., setting
+    angle=np.pi/2 puts angle=0 on the upper vertical meridian)
 
     NOTE: the origin is not rounded to the nearest int
+
     '''
 
     if not hasattr(size, '__iter__'):
@@ -139,11 +143,16 @@ def mkAngle(size, phase=0, origin=None):
 
     xramp, yramp = np.meshgrid(np.arange(1, size[1]+1)-origin[1],
                                np.arange(1, size[0]+1)-origin[0])
+    # xramp and yramp are both in "Cartesian coordinates", so that xramp increases as
+    # you go from left to right and yramp increases as you go from top to bottom
     xramp = np.array(xramp)
-    yramp = np.array(yramp)
+    # in order to get the proper angle array (0 at right horizontal meridian, increasing
+    # counter-clockwise), yramp needs to increase from bottom to top.
+    yramp = np.flip(np.array(yramp), 0)
 
     res = np.arctan2(yramp, xramp)
 
+    # shift the phase but preserve the range
     res = ((res+(np.pi-phase)) % (2*np.pi)) - np.pi
 
     return res
@@ -370,7 +379,7 @@ def sf_cpp(eccen, angle, stim_type='logpolar', w_r=None, w_a=None, w_x=None, w_y
     grating at that point.
 
     NOTE: for this to work, the zero for the angle you're passing in must correspond to the right
-    horizontal meridian, angle should lie between 0 and 2*pi, and you should move clockwise as
+    horizontal meridian, angle should lie between 0 and 2*pi, and you should move counter-clockwise as
     angle increases. This is all so it corresponds to the values for the direction of the spatial
     frequency.
 
@@ -408,7 +417,7 @@ def sf_cpd(eccen, angle, pixel_diameter=714, degree_diameter=8.4, stim_type='log
     grating at that point.
 
     NOTE: for this to work, the zero for the angle you're passing in must correspond to the right
-    horizontal meridian, angle should lie between 0 and 2*pi, and you should move clockwise as
+    horizontal meridian, angle should lie between 0 and 2*pi, and you should move counter-clockwise as
     angle increases. This is all so it corresponds to the values for the direction of the spatial
     frequency.
 
@@ -444,7 +453,7 @@ def sf_origin_polar_cpd(eccen, angle, pixel_diameter=714, degree_diameter=8.4,
     returns the local spatial frequency with respect to the radial and angular directions.
 
     NOTE: for this to work, the zero for the angle you're passing in must correspond to the right
-    horizontal meridian, angle should lie between 0 and 2*pi, and you should move clockwise as
+    horizontal meridian, angle should lie between 0 and 2*pi, and you should move counter-clockwise as
     angle increases. This is all so it corresponds to the values for the direction of the spatial
     frequency.
 
@@ -499,6 +508,7 @@ def create_sf_maps_cpp(pixel_diameter=714, origin=None, scale_factor=1, stim_typ
     x, y = np.divide(np.meshgrid(np.array(list(range(1, pixel_diameter+1))) - origin[0],
                                  np.array(list(range(1, pixel_diameter+1))) - origin[1]),
                      scale_factor)
+    y = np.flip(y, 0)
     # if the origin is set such that it lies directly on a pixel, then one of the pixels will have
     # distance 0 and that means we'll have a divide by zero coming up. this little hack avoids that
     # issue.
@@ -1023,7 +1033,7 @@ def _gen_freqs(base_freqs, n_orientations=4, n_intermed_samples=2, round_flag=Tr
                      if i % (n_intermed_steps/n_orientations) != 0]
     intermed_angles = [np.pi*1/n_intermed_steps*i for i in intermed_locs]
     # these are the canonical orientations
-    freqs = [(f*np.sin(a), f*np.cos(a)) for a, f in itertools.product(ori_angles, base_freqs)]
+    freqs = [(f*np.sin(a), -f*np.cos(a)) for a, f in itertools.product(ori_angles, base_freqs)]
     # arc, where distance from the origin is half the max (in log space)
     #  skip those values which we've already gotten: 0, pi/4, pi/2, 3*pi/4, and pi
     freqs.extend([(intermed_freq*np.sin(i),
