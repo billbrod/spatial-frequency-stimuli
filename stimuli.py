@@ -1037,7 +1037,7 @@ def _gen_freqs(base_freqs, n_orientations=4, n_intermed_samples=2, round_flag=Tr
     # arc, where distance from the origin is half the max (in log space)
     #  skip those values which we've already gotten: 0, pi/4, pi/2, 3*pi/4, and pi
     freqs.extend([(intermed_freq*np.sin(i),
-                   intermed_freq*np.cos(i)) for i in intermed_angles])
+                   -intermed_freq*np.cos(i)) for i in intermed_angles])
     if round_flag:
         freqs = np.round(freqs)
     return freqs
