@@ -941,6 +941,7 @@ def create_sin_cpp(size, w_x, w_y, phase=0, origin=None):
         origin = [(size+1) / 2., (size+1) / 2.]
     x = np.array(range(1, size+1))
     x, y = np.meshgrid(x - origin[0], x - origin[1])
+    y = np.flip(y, 0)
     return np.cos(2*np.pi*x*w_x + 2*np.pi*y*w_y + phase)
 
 
